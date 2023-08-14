@@ -1,8 +1,16 @@
-import axios from "axios";
+import axios from "axios"
+import { parseCookies } from "nookies"
 
-const instance = axios.create({
-    withCredentials: true,
-    baseURL: `http://localhost:5000/`
+axios.defaults.baseURL = "http://localhost:5000"
+
+axios.interceptors.request.use((config) => {
+    if (typeof window !== "undefined") {
+        const { _token } = parseCookies()
+
+        config.headers.Authorization = "Bearer " + _token
+    }
+
+    return config
 })
 
-export default instance
+export default axios

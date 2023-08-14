@@ -1,89 +1,36 @@
-"use client"
-
-import { Auth }  from "@/services/auth.service"
-import { useRouter } from "next/navigation"
-import { useUserStore } from "@/context/user"
 import { NextPage } from "next"
-import { Button, Form, Input, notification } from "antd"
-import styles from "./auth.module.css"
+import FormLogin from "./form"
+import { cookies } from "next/headers"
+import { redirect } from "next/navigation"
+import { getMe } from "@/services/auth.service"
+import axios from "axios"
 
-const Login: NextPage = () => {
-  const router = useRouter();
-  const { setAuth, auth } = useUserStore()
-  
-  if(auth){
-    router.replace('/dashboard')
-  }
+export const checkAuth = async () => {
+    const cookieStore = cookies()
+    const _token = cookieStore.get("_token")?.value
 
-const onSubmit = async(values:any) => {
-  try {
-    const { data } = await Auth(values.name,values.password)
-    
-    setAuth(true)
-    router.replace('/dashboard')
-    notification.success({
-      message:"Успешно",
-      description: "Вход в систему выполнен",
-      duration: 2
-    })
-  } catch (error) {
-    notification.error({
-      message:"Ошибка",
-      description: "Введены неверные данные",
-      duration: 2
-    })
-  }
-  
+    axios.defaults.headers.Authorization = `Bearer ${_token}`
+
+    try {
+        await getMe() // Make sure to await the asynchronous getMe() function
+        return true // User is authenticated
+    } catch (error) {
+        return false // User is not authenticated
+    }
 }
 
-  return (
-    <div className={styles.authForm}>
-      <h1 className={styles.h1}>Авторизация</h1>
-      <Form
-      name="basic"
-      labelCol={{
-        span: 8
-      }}
-      onFinish={onSubmit}
-      >
-        <Form.Item
-        label="Логин"
-        name="name"
-        rules={[
-          {
-            required:true,
-            message:"Укажите логин"
-          }
-        ]}
-        >
-          <Input />
-        </Form.Item>
-        <Form.Item
-        label="Пароль"
-        name="password"
-        rules={[
-          {
-            required:true,
-            message:"Укажите пароль"
-          }
-        ]}
-        >
-          <Input.Password />
-        </Form.Item>
+const Login: NextPage = async () => {
+    const isAuth = await checkAuth() // Wait for the checkAuth() result
 
-        <Form.Item
-          wrapperCol={{
-            offset:8,
-            span: 16
-          }}
-        >
-          <Button type="primary" htmlType="submit">
-            Войти
-          </Button>
-        </Form.Item>
-      </Form>
-    </div>
-  )
+    if (isAuth) {
+        redirect("/dashboard") // Redirect if authenticated
+    }
+
+    return (
+        <>
+            <FormLogin />
+        </>
+    )
 }
 
 export default Login

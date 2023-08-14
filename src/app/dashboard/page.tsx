@@ -1,27 +1,38 @@
-"use client"
+import { getMe } from "@/services/auth.service"
+import axios from "axios"
+import { NextPage } from "next"
+import { cookies } from "next/headers"
+import { redirect } from "next/navigation"
 
-import { useUserStore } from '@/context/user'
-import { logout } from '@/services/auth.service';
-import { FC } from 'react';
-import { useRouter } from "next/navigation"
+export const checkAuth = async () => {
+    const cookieStore = cookies()
+    const _token = cookieStore.get("_token")?.value
 
-const Dashboard: FC = () => {
-  const {setAuth, auth} = useUserStore()
-  const router = useRouter();
+    if (!_token) {
+        redirect("/auth")
+    }
+    axios.defaults.headers.Authorization = `Bearer ${_token}`
 
-  const handleLogout = async() =>{
-      const {data} = await logout();
-      setAuth(false)
+    try {
+        await getMe()
+        return true
+    } catch (error) {
+        return false
+    }
+}
 
-      router.replace('/auth')
-  }
+const Dashboard: NextPage = async () => {
+    const isAuth = await checkAuth() // Wait for the checkAuth() result
 
-  return (
-    <div>
-      Dashboard
-      <button className='py-4 px-8 bg-red-600 rounded-lg font-bold text-white' onClick={()=>handleLogout()}>Выйти</button>
-    </div>
-  )
+    if (!isAuth) {
+        redirect("/auth") // Redirect if authenticated
+    }
+    return (
+        <div>
+            Dashboard
+            <button className="py-4 px-8 bg-red-600 rounded-lg font-bold text-white">Выйти</button>
+        </div>
+    )
 }
 
 export default Dashboard
